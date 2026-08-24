@@ -30,7 +30,7 @@ footer{padding:28px 22px 45px;text-align:center;color:#8a938d;font-size:12px}@me
 .account-bar button{background:none;color:var(--green);text-decoration:underline;padding:0;font-size:13px}
 .locked-hint{display:none;text-align:center;color:#8a938d;font-size:13px;margin-top:14px}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -220,11 +220,8 @@ preview.src=URL.createObjectURL(file);preview.style.display="block";verifyBtn.di
 });
 
 /* ===== 실제 AI 글자 인식 (Tesseract.js, 브라우저 안에서 동작 - 서버/키 불필요) ===== */
-let ocrWorkerPromise = null;
-function getOcrWorker(){
-if(!ocrWorkerPromise){
-ocrWorkerPromise = (async () => {
-const worker = await Tesseract.createWorker('kor+eng', 1, {
+async function recognizeLetterWithAI(file){
+const { data } = await Tesseract.recognize(file, 'kor+eng', {
 logger: m => {
 if(m.status === 'recognizing text'){
 verifyBtn.textContent = `AI가 글자를 읽는 중... ${Math.round((m.progress||0)*100)}%`;
@@ -233,20 +230,8 @@ verifyBtn.textContent = 'AI 준비 중... (처음 한 번은 몇 초 걸려요)'
 }
 }
 });
-// 이미지 전체가 아니라 '글자 하나'라고 가정하고 읽도록 지정 (인식률 개선 핵심 옵션)
-await worker.setParameters({ tessedit_pageseg_mode: '10' });
-return worker;
-})();
-}
-return ocrWorkerPromise;
-}
-
-async function recognizeLetterWithAI(file){
-const worker = await getOcrWorker();
-const { data } = await worker.recognize(file);
 const raw = (data.text || "").trim().toUpperCase();
 const collected = getCollected();
-// 아직 못 모은 글자 중에서, 인식된 텍스트에 포함된 것을 찾음
 for(const letter of letters){
 if(collected.includes(letter)) continue;
 if(raw.includes(letter.toUpperCase())) return letter;
@@ -283,7 +268,7 @@ renderLetters();
 if(collected.length === 6) setTimeout(() => document.getElementById("finalMessage").scrollIntoView({behavior:"smooth",block:"center"}), 300);
 }catch(error){
 console.error(error);
-result.innerHTML = "인식 중 문제가 발생했습니다. 다시 시도해주세요.";
+result.innerHTML = "인식 중 문제가 발생했습니다. 다시 시도해주세요.<br><span style='font-size:11px;color:#999'>" + (error && error.message ? error.message : "") + "</span>";
 result.style.display = "block";
 }finally{
 verifyBtn.disabled = false;
