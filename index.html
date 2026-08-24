@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>쫙팩 프로젝트 (전화번호 적립 버전)</title>
+<style>
+:root{--green:#2f9e5b;--dark:#173b29;--light:#eef8f1;--text:#24332a}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;color:var(--text);background:#f7faf8;line-height:1.6}.wrap{max-width:720px;margin:auto;background:#fff;min-height:100vh}
+header{padding:20px 22px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #edf1ee}.logo{font-weight:900;color:var(--green);font-size:20px}.count{background:var(--light);color:var(--green);padding:6px 11px;border-radius:999px;font-size:13px;font-weight:800}
+section{padding:38px 22px}.hero{background:linear-gradient(145deg,#eaf8ee,#f9fffb);text-align:center;padding:52px 22px 44px}.badge{display:inline-block;background:#fff;color:var(--green);border:1px solid #d6ebdc;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:800}
+h1{margin:14px 0 8px;font-size:34px;line-height:1.25;color:var(--dark)}h2{margin:0 0 8px;font-size:25px;color:var(--dark)}.sub{color:#637168;margin:0}
+.fortune-card{margin:26px auto 0;max-width:580px;background:#fff;border-radius:24px;padding:30px 22px;box-shadow:0 12px 35px rgba(35,85,53,.1);border:1px solid #e4eee7}.fortune-icon{font-size:38px}.fortune{font-size:19px;font-weight:800;color:#263d2d;margin:12px 0 0}
+.divider{height:8px;background:#f2f6f3}.letters{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:22px 0 18px}.letter{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:15px;background:#e5e9e6;color:#9ba49e;font-size:24px;font-weight:900}.letter.collected{background:var(--green);color:#fff}
+.status{padding:15px;border-radius:16px;background:var(--light);color:#36543f;font-weight:700;text-align:center}.verify-box{margin-top:20px;padding:20px;border:1px dashed #a9cdb4;border-radius:20px;background:#fbfefc}
+input[type=file]{width:100%;padding:11px;border:1px solid #d9e2dc;border-radius:12px;background:#fff}.preview{margin-top:14px;display:none;width:100%;max-height:280px;object-fit:contain;border-radius:14px;background:#eef3ef}
+button,.reward-link{border:0;cursor:pointer;font:inherit;font-weight:800;border-radius:14px;padding:12px 18px;background:var(--green);color:#fff}.verify-btn{margin-top:12px;width:100%}.verify-btn:disabled{opacity:.5}.hint{font-size:13px;color:#77827b;margin:10px 0 0}.result{margin-top:15px;padding:14px;border-radius:14px;background:#f4faf6;display:none}
+.guide{display:grid;gap:14px;margin-top:22px}.step{display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:18px;background:#f5faf6;border:1px solid #e2eee5}.num{flex:0 0 36px;height:36px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900}.step strong{display:block;color:var(--dark)}
+.final{margin-top:22px;padding:24px;border-radius:22px;background:var(--dark);color:#fff;text-align:center}.final strong{font-size:22px}.reward{margin-top:18px;padding:20px;border-radius:18px;background:#fff;color:var(--text);text-align:left}.reward-title{font-weight:900;color:var(--green);font-size:18px}.reward-code{margin:10px 0;padding:13px;border-radius:12px;background:#f0f5f1;font-family:monospace;font-weight:900;text-align:center}.reward-note{font-size:13px;color:#718078}.reward-link{display:block;margin-top:12px;text-align:center;text-decoration:none}
+footer{padding:28px 22px 45px;text-align:center;color:#8a938d;font-size:12px}@media(max-width:480px){h1{font-size:30px}.letter{font-size:20px}section{padding-left:18px;padding-right:18px}}
+
+/* ===== 전화번호 적립 UI (추가된 부분) ===== */
+.phone-gate{margin-top:18px;padding:20px;border:1px dashed #a9cdb4;border-radius:20px;background:#fbfefc}
+.phone-row{display:flex;gap:8px;margin-top:10px}
+.phone-row input{flex:1;min-width:0;padding:11px;border:1px solid #d9e2dc;border-radius:12px;background:#fff;font:inherit}
+.phone-row button{white-space:nowrap;padding:11px 16px}
+.field-error{display:none;color:#c0492f;font-size:13px;margin-top:8px}
+.field-error.show{display:block}
+.account-bar{display:none;align-items:center;justify-content:space-between;background:var(--light);border-radius:14px;padding:10px 14px;margin:16px 0;font-size:13px;color:#2b5b3c}
+.account-bar button{background:none;color:var(--green);text-decoration:underline;padding:0;font-size:13px}
+.locked-hint{display:none;text-align:center;color:#8a938d;font-size:13px;margin-top:14px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+<header><div class="logo">쫙팩 PROJECT</div><div class="count" id="headerCount">모은 글자 0/6</div></header>
+
+<section class="hero">
+<span class="badge">오늘의 쫙팩 운세 🍀</span>
+<h1>오늘의 운세를 확인하고<br>쫙팩을 모아보세요!</h1>
+<p class="sub">QR을 찍은 당신에게 찾아온 오늘의 한마디</p>
+<div class="fortune-card"><div class="fortune-icon">🔮</div><div class="fortune" id="fortuneText"></div></div>
+</section>
+
+<div class="divider"></div>
+
+<section>
+<h2>🔎 숨은 글자 모으기</h2>
+<p class="sub">쫙팩 곳곳에 숨은 글자를 찾아 사진으로 인증해보세요!</p>
+
+<!-- ===== 여기부터 전화번호 적립 (추가된 부분) ===== -->
+<div class="phone-gate" id="phoneGate">
+<strong>번호로 시작하기</strong>
+<p class="hint">앱 설치나 회원가입 없이, 번호 하나로 진행 상황이 저장돼요. 다음에 또 방문해도 같은 번호를 넣으면 이어서 모을 수 있어요.</p>
+<div class="phone-row">
+<input id="phoneInput" type="tel" placeholder="010-0000-0000" maxlength="13">
+<button id="phoneSubmit">시작하기</button>
+</div>
+<div class="field-error" id="fieldError">번호를 다시 확인해 주세요 (숫자 9자리 이상).</div>
+</div>
+
+<div class="account-bar" id="accountBar">
+<span>적립 번호 <strong id="accountPhoneLabel"></strong></span>
+<button id="logoutBtn">번호 변경</button>
+</div>
+<!-- ===== 전화번호 적립 끝 ===== -->
+
+<div class="letters" id="letters"></div>
+<div class="status" id="status"></div>
+<p class="locked-hint" id="lockedHint">↑ 번호를 먼저 입력해주세요.</p>
+
+<div class="verify-box" id="verifyBox" style="display:none">
+<strong>📸 사진으로 글자 인증하기</strong>
+<p class="hint">글자가 보이도록 사진을 촬영하거나 업로드해주세요. 인증이 완료되면 해당 글자가 자동으로 체크됩니다.</p>
+<input id="photoInput" type="file" accept="image/*" capture="environment">
+<img id="preview" class="preview" alt="인증 사진 미리보기">
+<button class="verify-btn" id="verifyBtn" disabled>사진을 업로드하면 인증하기</button>
+<div class="result" id="result"></div>
+<p class="hint">※ 브라우저 안에서 바로 글자를 읽어요(서버로 전송하지 않아요). 글자가 화면 가운데 크게, 밝은 곳에서 보이도록 찍으면 인식률이 올라가요.</p>
+</div>
+
+<div class="final" id="finalMessage" style="display:none">
+<strong>🎉 쫙팩 6글자를 모두 모았어요!</strong>
+<p>모든 숨은 글자를 찾았습니다.<br>아래 리워드를 확인해주세요!</p>
+<div class="reward" id="rewardBox"></div>
+</div>
+</section>
+
+<div class="divider"></div>
+<section>
+<h2>♻️ 쫙팩 분리배출 가이드</h2>
+<p class="sub">다 마신 쫙팩, 이렇게 분리배출해주세요!</p>
+<div class="guide">
+<div class="step"><div class="num">1</div><div><strong>쫙팩을 헹군다.</strong><span>내용물을 비우고 깨끗하게 헹궈주세요.</span></div></div>
+<div class="step"><div class="num">2</div><div><strong>팩을 절취선에 따라 끝까지 펼친다.</strong><span>팩을 완전히 펼쳐 수거하기 좋은 상태로 만들어주세요.</span></div></div>
+<div class="step"><div class="num">3</div><div><strong>수거함에 넣는다.</strong><span>지정된 쫙팩 수거함에 넣어주세요.</span></div></div>
+</div>
+</section>
+<footer>쫙팩 프로젝트 · 작은 실천이 자원순환을 만듭니다 🌱</footer>
+</div>
+
+<script>
+/* ===== 수정하기 쉬운 설정 영역 ===== */
+const fortunes=[
+"오늘은 좋은일이 기다리고 있습니다. 지금 바로 풀무원 제품 1개를 받아가세요",
+"조급해하지마세요. 잠시 쉬어가는 것도 방법입니다",
+"뜻밖의 소식이 당신을 기다리고 있습니다",
+"오늘의 행운은 새로운 시작에 있습니다. 자신감 있게 한 걸음 내딛어 보세요"
+];
+
+const letters=["쫙","팩","X","풀","무","원"];
+
+const rewards=[
+{name:"스테이풀무원 참가권",codePrefix:"STAY",linkText:"스테이풀무원 신청하기 →",link:"#"},
+{name:"풀무원 상품 교환권",codePrefix:"PULMUONE",linkText:"풀무원 앱에서 등록하기 →",link:"#"},
+{name:"풀무원 제품 할인 쿠폰",codePrefix:"COUPON",linkText:"풀무원 앱 쿠폰 등록하기 →",link:"#"}
+];
+
+/* ===== 전화번호별 저장 기능 (기존 STORAGE_KEY/REWARD_KEY을 번호별로 분리) ===== */
+const LAST_PHONE_KEY="jjwakpack_last_phone";
+let currentPhone=null;
+
+function formatPhone(raw){
+const digits=raw.replace(/\D/g,"").slice(0,11);
+if(digits.length<4)return digits;
+if(digits.length<8)return digits.slice(0,3)+"-"+digits.slice(3);
+return digits.slice(0,3)+"-"+digits.slice(3,7)+"-"+digits.slice(7);
+}
+
+function storageKey(phone){return "jjwakpack_collected_letters_v2_"+phone}
+function rewardStorageKey(phone){return "jjwakpack_reward_v2_"+phone}
+
+function getCollected(){
+if(!currentPhone)return[];
+try{return JSON.parse(localStorage.getItem(storageKey(currentPhone)))||[]}catch(e){return[]}
+}
+function saveCollected(arr){
+if(!currentPhone)return;
+localStorage.setItem(storageKey(currentPhone),JSON.stringify([...new Set(arr)]));
+}
+
+function renderLetters(){
+const collected=getCollected(), area=document.getElementById("letters");
+area.innerHTML="";
+letters.forEach(letter=>{
+const div=document.createElement("div");
+div.className="letter"+(collected.includes(letter)?" collected":"");
+div.textContent=letter;area.appendChild(div);
+});
+document.getElementById("headerCount").textContent=`모은 글자 ${collected.length}/6`;
+document.getElementById("status").textContent=!currentPhone
+? "번호를 입력하면 시작할 수 있어요."
+: (collected.length===6?"모든 글자를 모았습니다! 🎉":`현재 ${collected.length}개를 모았어요. ${6-collected.length}개가 남았습니다.`);
+if(currentPhone && collected.length===6)showReward();
+else document.getElementById("finalMessage").style.display="none";
+}
+
+/* ===== 6글자 완성 시 랜덤 리워드 발급 (번호별) ===== */
+function generateReward(){
+let saved=localStorage.getItem(rewardStorageKey(currentPhone));
+if(saved)return JSON.parse(saved);
+const reward=rewards[Math.floor(Math.random()*rewards.length)];
+const code=reward.codePrefix+"-"+Math.random().toString(36).slice(2,10).toUpperCase();
+const data={...reward,code};
+localStorage.setItem(rewardStorageKey(currentPhone),JSON.stringify(data));
+return data;
+}
+function showReward(){
+const reward=generateReward();
+document.getElementById("finalMessage").style.display="block";
+document.getElementById("rewardBox").innerHTML=
+`<div class="reward-title">🎁 오늘의 리워드</div>
+<div><strong>${reward.name}</strong></div>
+<div class="reward-code">${reward.code}</div>
+<div class="reward-note">현재는 테스트용 코드입니다. 실제 운영 시 사용 가능한 쿠폰/참가권 발급 시스템과 연결해주세요.</div>
+<a class="reward-link" href="${reward.link}" onclick="return false">${reward.linkText}</a>`;
+}
+
+/* ===== 전화번호 로그인 / 로그아웃 (추가된 부분) ===== */
+function login(phoneDigits, phoneDisplay){
+currentPhone=phoneDigits;
+localStorage.setItem(LAST_PHONE_KEY,phoneDigits);
+document.getElementById("phoneGate").style.display="none";
+document.getElementById("accountBar").style.display="flex";
+document.getElementById("accountPhoneLabel").textContent=phoneDisplay;
+document.getElementById("verifyBox").style.display="block";
+document.getElementById("lockedHint").style.display="none";
+renderLetters();
+}
+function logout(){
+currentPhone=null;
+localStorage.removeItem(LAST_PHONE_KEY);
+document.getElementById("phoneGate").style.display="block";
+document.getElementById("accountBar").style.display="none";
+document.getElementById("verifyBox").style.display="none";
+document.getElementById("lockedHint").style.display="block";
+document.getElementById("phoneInput").value="";
+document.getElementById("fieldError").classList.remove("show");
+renderLetters();
+}
+function submitPhone(){
+const raw=document.getElementById("phoneInput").value;
+const digits=raw.replace(/\D/g,"");
+if(digits.length<9){document.getElementById("fieldError").classList.add("show");return}
+document.getElementById("fieldError").classList.remove("show");
+login(digits,formatPhone(raw));
+}
+document.getElementById("phoneSubmit").onclick=submitPhone;
+document.getElementById("phoneInput").addEventListener("input",e=>{e.target.value=formatPhone(e.target.value)});
+document.getElementById("phoneInput").addEventListener("keydown",e=>{if(e.key==="Enter")submitPhone()});
+document.getElementById("logoutBtn").onclick=logout;
+
+/* ===== 사진 업로드 (기존과 완전히 동일) ===== */
+const photoInput=document.getElementById("photoInput"),preview=document.getElementById("preview"),verifyBtn=document.getElementById("verifyBtn"),result=document.getElementById("result");
+photoInput.addEventListener("change",e=>{
+const file=e.target.files[0];
+if(!file){preview.style.display="none";verifyBtn.disabled=true;return}
+preview.src=URL.createObjectURL(file);preview.style.display="block";verifyBtn.disabled=false;verifyBtn.textContent="AI로 글자 인증하기";result.style.display="none";
+});
+
+/* ===== 실제 AI 글자 인식 (Tesseract.js, 브라우저 안에서 동작 - 서버/키 불필요) ===== */
+let ocrWorkerPromise = null;
+function getOcrWorker(){
+if(!ocrWorkerPromise){
+ocrWorkerPromise = (async () => {
+const worker = await Tesseract.createWorker('kor+eng', 1, {
+logger: m => {
+if(m.status === 'recognizing text'){
+verifyBtn.textContent = `AI가 글자를 읽는 중... ${Math.round((m.progress||0)*100)}%`;
+} else if(m.status){
+verifyBtn.textContent = 'AI 준비 중... (처음 한 번은 몇 초 걸려요)';
+}
+}
+});
+// 이미지 전체가 아니라 '글자 하나'라고 가정하고 읽도록 지정 (인식률 개선 핵심 옵션)
+await worker.setParameters({ tessedit_pageseg_mode: '10' });
+return worker;
+})();
+}
+return ocrWorkerPromise;
+}
+
+async function recognizeLetterWithAI(file){
+const worker = await getOcrWorker();
+const { data } = await worker.recognize(file);
+const raw = (data.text || "").trim().toUpperCase();
+const collected = getCollected();
+// 아직 못 모은 글자 중에서, 인식된 텍스트에 포함된 것을 찾음
+for(const letter of letters){
+if(collected.includes(letter)) continue;
+if(raw.includes(letter.toUpperCase())) return letter;
+}
+return null;
+}
+
+verifyBtn.addEventListener("click", async () => {
+if(!currentPhone) return;
+const file = photoInput.files[0]; if(!file) return;
+
+const before = getCollected();
+if(before.length === 6){
+result.innerHTML = "이미 모든 글자를 모았습니다! 🎉";
+result.style.display = "block";
+return;
+}
+
+verifyBtn.disabled = true;
+verifyBtn.textContent = "AI 준비 중...";
+try{
+const detected = await recognizeLetterWithAI(file);
+if(!detected){
+result.innerHTML = "글자를 정확히 못 찾았어요. 글자가 화면 가운데 크게 보이도록 다시 찍어주세요.";
+result.style.display = "block";
+return;
+}
+const collected = getCollected();
+collected.push(detected);
+saveCollected(collected);
+result.innerHTML = `<strong>✅ 인증 완료!</strong><br>사진에서 <strong>'${detected}'</strong> 글자를 찾았습니다.`;
+result.style.display = "block";
+renderLetters();
+if(collected.length === 6) setTimeout(() => document.getElementById("finalMessage").scrollIntoView({behavior:"smooth",block:"center"}), 300);
+}catch(error){
+console.error(error);
+result.innerHTML = "인식 중 문제가 발생했습니다. 다시 시도해주세요.";
+result.style.display = "block";
+}finally{
+verifyBtn.disabled = false;
+verifyBtn.textContent = "AI로 글자 인증하기";
+}
+});
+
+/* ===== 초기 실행 ===== */
+const index=Math.floor(Math.random()*fortunes.length);
+document.getElementById("fortuneText").textContent=fortunes[index];
+
+const savedPhone=localStorage.getItem(LAST_PHONE_KEY);
+if(savedPhone){
+login(savedPhone, formatPhone(savedPhone));
+}else{
+document.getElementById("lockedHint").style.display="block";
+renderLetters();
+}
+</script>
+</body>
+</html>
