@@ -29,7 +29,15 @@ footer{padding:28px 22px 45px;text-align:center;color:#8a938d;font-size:12px}@me
 .account-bar{display:none;align-items:center;justify-content:space-between;background:var(--light);border-radius:14px;padding:10px 14px;margin:16px 0;font-size:13px;color:#2b5b3c}
 .account-bar button{background:none;color:var(--green);text-decoration:underline;padding:0;font-size:13px}
 .locked-hint{display:none;text-align:center;color:#8a938d;font-size:13px;margin-top:14px}
+
+/* ===== 가까운 수거처 찾기 (추가된 부분) ===== */
+.finder-box{margin-top:20px;padding:20px;border:1px dashed #a9cdb4;border-radius:20px;background:#fbfefc}
+#mapBox{display:none;margin-top:14px}
+#leafletMap{height:260px;border-radius:16px;overflow:hidden;background:#eef3ef}
+.finder-error{display:none;color:#c0492f;font-size:13px;margin-top:10px}
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
 </head>
 <body>
@@ -95,6 +103,17 @@ footer{padding:28px 22px 45px;text-align:center;color:#8a938d;font-size:12px}@me
 <div class="step"><div class="num">1</div><div><strong>쫙팩을 헹군다.</strong><span>내용물을 비우고 깨끗하게 헹궈주세요.</span></div></div>
 <div class="step"><div class="num">2</div><div><strong>팩을 절취선에 따라 끝까지 펼친다.</strong><span>팩을 완전히 펼쳐 수거하기 좋은 상태로 만들어주세요.</span></div></div>
 <div class="step"><div class="num">3</div><div><strong>수거함에 넣는다.</strong><span>지정된 쫙팩 수거함에 넣어주세요.</span></div></div>
+</div>
+
+<div class="finder-box">
+<strong>📍 가까운 수거처 찾기</strong>
+<p class="hint">내 위치 근처의 종이팩·멸균팩 전용 수거함이나, 화장지로 교환 가능한 행정복지센터를 찾아드려요.</p>
+<button id="findNearBtn" class="verify-btn">내 주변에서 찾기</button>
+<p class="finder-error" id="finderError"></p>
+<div id="mapBox">
+<div id="leafletMap"></div>
+<a id="openMapLink" class="reward-link" style="display:block;margin-top:10px;text-align:center;text-decoration:none" target="_blank" rel="noopener">네이버지도에서 자세히 보기 →</a>
+</div>
 </div>
 </section>
 <footer>쫙팩 프로젝트 · 작은 실천이 자원순환을 만듭니다 🌱</footer>
@@ -275,6 +294,48 @@ verifyBtn.disabled = false;
 verifyBtn.textContent = "AI로 글자 인증하기";
 }
 });
+
+/* ===== 가까운 수거처 찾기 (추가된 부분) ===== */
+const findNearBtn = document.getElementById("findNearBtn");
+const finderError = document.getElementById("finderError");
+
+findNearBtn.onclick = () => {
+finderError.style.display = "none";
+if(!navigator.geolocation){
+finderError.textContent = "이 브라우저에서는 위치 확인이 지원되지 않아요.";
+finderError.style.display = "block";
+return;
+}
+findNearBtn.disabled = true;
+findNearBtn.textContent = "내 위치를 확인하는 중...";
+navigator.geolocation.getCurrentPosition(
+pos => {
+const { latitude, longitude } = pos.coords;
+showNearbyMap(latitude, longitude);
+findNearBtn.style.display = "none";
+},
+() => {
+finderError.textContent = "위치 권한을 허용해주셔야 찾을 수 있어요. 브라우저 설정에서 위치 접근을 허용해주세요.";
+finderError.style.display = "block";
+findNearBtn.disabled = false;
+findNearBtn.textContent = "내 주변에서 찾기";
+},
+{ enableHighAccuracy: true, timeout: 8000 }
+);
+};
+
+function showNearbyMap(lat, lng){
+document.getElementById("mapBox").style.display = "block";
+const map = L.map("leafletMap").setView([lat, lng], 15);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+attribution: "&copy; OpenStreetMap"
+}).addTo(map);
+L.marker([lat, lng]).addTo(map).bindPopup("내 위치").openPopup();
+
+const query = encodeURIComponent("종이팩 수거함");
+const naverUrl = `https://map.naver.com/v5/search/${query}?c=${lng},${lat},15,0,0,0,dh`;
+document.getElementById("openMapLink").href = naverUrl;
+}
 
 /* ===== 초기 실행 ===== */
 const index=Math.floor(Math.random()*fortunes.length);
