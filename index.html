@@ -112,7 +112,8 @@ footer{padding:28px 22px 45px;text-align:center;color:#8a938d;font-size:12px}@me
 <p class="finder-error" id="finderError"></p>
 <div id="mapBox">
 <div id="leafletMap"></div>
-<a id="openMapLink" class="reward-link" style="display:block;margin-top:10px;text-align:center;text-decoration:none" target="_blank" rel="noopener">네이버지도에서 자세히 보기 →</a>
+<a id="openMapLink" class="reward-link" style="display:block;margin-top:10px;text-align:center;text-decoration:none" target="_blank" rel="noopener">가까운 행정복지센터 찾기 →</a>
+<a id="openMapLink2" class="hint" style="display:block;margin-top:8px;text-align:center;text-decoration:underline" target="_blank" rel="noopener">종이팩 수거함도 검색해보기 (지역에 따라 결과가 없을 수 있어요)</a>
 </div>
 </div>
 </section>
@@ -332,9 +333,13 @@ attribution: "&copy; OpenStreetMap"
 }).addTo(map);
 L.marker([lat, lng]).addTo(map).bindPopup("내 위치").openPopup();
 
-const query = encodeURIComponent("종이팩 수거함");
-const naverUrl = `https://map.naver.com/v5/search/${query}?c=${lng},${lat},15,0,0,0,dh`;
-document.getElementById("openMapLink").href = naverUrl;
+const primaryQuery = encodeURIComponent("행정복지센터");
+const primaryUrl = `https://map.naver.com/v5/search/${primaryQuery}?c=${lng},${lat},15,0,0,0,dh`;
+document.getElementById("openMapLink").href = primaryUrl;
+
+const secondaryQuery = encodeURIComponent("종이팩 수거함");
+const secondaryUrl = `https://map.naver.com/v5/search/${secondaryQuery}?c=${lng},${lat},15,0,0,0,dh`;
+document.getElementById("openMapLink2").href = secondaryUrl;
 }
 
 /* ===== 초기 실행 ===== */
